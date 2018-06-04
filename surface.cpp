@@ -122,37 +122,20 @@ int main()
     cerr << kHeight << endl;
 
     World world(kWidth, kHeight);
-    bool any_land_found  = false;
     for (int i = 0; i < kHeight; i++) {
         string row;
         getline(cin, row);
 
-//        assert(row.size() == world.width_);
-//        cerr<< row << endl;
         for (int j = 0; j < row.size(); ++j) {
             world.tileAt(j, i).is_water = row.at(j) == 'O';
-            any_land_found = row.at(j) == '#';
         }
     }
 
-//    for (int i = 0; i < kWidth; ++i) {
-//        for (int j = 0; j < kHeight; ++j) {
-//            cerr << world.tileAt(i, j) << " ";
-//        }
-//        cerr << endl;
-//    }
-
     int N;
     cin >> N; cin.ignore();
-//    cerr << "queries: " << N << endl;
-
 
     for (int k = 0; k < N; ++k) {
 
-        if (! any_land_found) {
-//            cout << "360000" << endl;
-            continue;
-        }
 
         Coords discover_coords{};
 
@@ -168,8 +151,6 @@ int main()
         if (tile.lake_area == 0) {
             discover(discover_coords, world);
         }
-//        assert(tile.lake_area != 0);
         cout << tile.lake_area << endl;
     }
-
 }

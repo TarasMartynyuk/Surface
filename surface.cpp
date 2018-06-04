@@ -16,6 +16,10 @@ struct Coords { int x; int y; };
 bool operator== (const Coords& left, const Coords& right) {
     return  left.x == right.x && left.y == right.y;
 }
+ostream& operator<<(ostream& os, const Coords& coords) {
+    os << "(" << coords.x << ", " << coords.y << ")";
+}
+
 namespace std {
     template<>
     struct hash<Coords> {
@@ -38,7 +42,7 @@ public:
     const int height_;
 
     World(int width, int height) :
-        tiles_(height, vector<TileInfo>(width, TileInfo())),
+        tiles_(width_, vector<TileInfo>(height_, TileInfo())),
         width_(width), height_(height){}
 
     TileInfo& tileAt(int x, int y) {
@@ -48,14 +52,14 @@ public:
         return tileAt(coords.x, coords.y);
     }
     bool inBounds(const Coords& coords) {
-        return coords.x >= 0 || coords.x < width_ ||
-               coords.y >= 0 || coords.y < height_;
+        return coords.x >= 0 && coords.x < width_ &&
+               coords.y >= 0 && coords.y < height_;
     }
 private:
     vector<vector<TileInfo>> tiles_;
 };//endregion
 
-void getAdjacent(Coords center, World& world, vector<Coords>& adj) {
+void getAdjacentWaterTiles(Coords center, World& world, vector<Coords>& adj) {
     adj.clear(); // does not change the capacity
     Coords left{ center.x - 1, center.y };
     if (world.inBounds(left) && world.tileAt(left).is_water) {
@@ -79,8 +83,6 @@ void getAdjacent(Coords center, World& world, vector<Coords>& adj) {
 }
 
 void discover(Coords start, World& world) {
-    vector<Coords> lake_coords;
-
     unordered_set<Coords> visited;
     vector<Coords> adjacent(4);
     stack<Coords> to_visit;
@@ -92,76 +94,87 @@ void discover(Coords start, World& world) {
         auto& next = to_visit.top();
         to_visit.pop();
 
-        getAdjacent(next, world, adjacent);
+        getAdjacentWaterTiles(next, world, adjacent);
         for(auto adj : adjacent) {
-            to_visit.push(adj);
+            if(visited.count(adj) == 0) {
+                to_visit.push(adj);
+            }
         }
 
         visited.insert(next);
     }
 
-    int lake_area = lake_coords.size();
-    for(auto& lake_coord : lake_coords) {
+    int lake_area = visited.size();
+    for(auto& lake_coord : visited) {
         world.tileAt(lake_coord).lake_area = lake_area;
     }
 }
 
 int main()
 {
-    stringstream ss;
-    ss << 4 << endl <<
-       4 << endl <<
-       "####\n"  <<
-          "##O#\n" <<
-          "#OO#\n" <<
-          "####\n" <<
-             "3\n" <<
-            "0 0\n" <<
-            "1 2\n" <<
-            "2 1\n";
-
-    stringstream& cin = ss;
-
+//    stringstream cin;
+//    cin << "10\n" <<
+//    "10\n"
+//    "##OOOOOOOO\n"
+//    "##OOOOOOOO\n"
+//    "##OOOOOOOO\n"
+//    "##OOOOOOOO\n"
+//    "##OOOOOOOO\n"
+//
+//    "##OOOOOOOO\n"
+//    "##OOOOOOOO\n"
+//    "##OOOOOOOO\n"
+//    "##OOOOOOOO\n"
+//    "##OOOOOOOO\n";
 
     int kWidth;
     int kHeight;
     cin >> kWidth;    cin.ignore();
     cin >> kHeight;    cin.ignore();
-
+    cerr << kWidth << endl;
+    cerr << kHeight << endl;
 
     World world(kWidth, kHeight);
     for (int i = 0; i < kHeight; i++) {
         string row;
         getline(cin, row);
-        cerr<< row << endl;
+
+        assert(row.size() == world.width_);
+//        cerr<< row << endl;
         for (int j = 0; j < row.size(); ++j) {
-            world.tileAt(i, j).is_water = row.at(j) == 'O';
+            world.tileAt(j, i).is_water = row.at(j) == 'O';
         }
     }
 
-    for (int i = 0; i < kHeight; ++i) {
-        for (int j = 0; j < kWidth; ++j) {
-            cerr << world.tileAt(i, j) << " ";
-        }
-        cerr << endl;
-    }
+//    for (int i = 0; i < kWidth; ++i) {
+//        for (int j = 0; j < kHeight; ++j) {
+//            cerr << world.tileAt(i, j) << " ";
+//        }
+//        cerr << endl;
+//    }
 
     int N;
     cin >> N; cin.ignore();
-    for (int i = 0; i < N; i++) {
-        Coords discover_coords;
-        cin >> discover_coords.x >> discover_coords.y; cin.ignore();
+//    cerr << "queries: " << N << endl;
+
+
+    for (int k = 0; k < N; ++k) {
+        Coords discover_coords{};
+
+        cin >> discover_coords.x >> discover_coords.y;
+        cin.ignore();
 
         auto& tile = world.tileAt(discover_coords);
-        if(! tile.is_water) {
+        if (!tile.is_water) {
             cout << 0 << endl;
             continue;
         }
 
-        if(tile.lake_area == 0) {
-           discover(discover_coords, world);
+        if (tile.lake_area == 0) {
+            discover(discover_coords, world);
         }
         assert(tile.lake_area != 0);
         cout << tile.lake_area << endl;
     }
+
 }
